@@ -53,6 +53,9 @@ class ControllerConfig:
             None for controllers that don't have an auth adapter in nac-test-pyats-common.
         alt_url_env_vars: Alternative environment variable names for the URL.
             Used when a controller supports multiple URL env var names (e.g., IOSXE_HOST).
+        alt_credential_sets: Alternative credential sets that can satisfy authentication.
+            Each inner list is a set of env vars that, if ALL present, makes the controller
+            complete without needing the primary required_env_vars.
     """
 
     display_name: str
@@ -62,6 +65,7 @@ class ControllerConfig:
     defaults_prefix: str
     cache_key: str | None = None
     alt_url_env_vars: list[str] | None = None
+    alt_credential_sets: list[list[str]] | None = None
 
 
 # Single source of truth for all controller configurations
@@ -82,6 +86,7 @@ CONTROLLER_REGISTRY: dict[str, ControllerConfig] = {
         required_env_vars=["SDWAN_URL", "SDWAN_USERNAME", "SDWAN_PASSWORD"],
         defaults_prefix="defaults.sdwan",
         cache_key="SDWAN_MANAGER",
+        alt_credential_sets=[["SDWAN_URL", "SDWAN_API_TOKEN"]],
     ),
     "CC": ControllerConfig(
         display_name="Catalyst Center",
@@ -226,6 +231,24 @@ def _find_credential_sets() -> tuple[list[str], dict[str, CredentialSetStatus]]:
     partial_sets: dict[str, CredentialSetStatus] = {}
 
     for controller_type, config in CONTROLLER_REGISTRY.items():
+        # Check alternative credential sets first (e.g., SDWAN_API_TOKEN)
+        if config.alt_credential_sets:
+            for alt_set in config.alt_credential_sets:
+                alt_present = all(
+                    os.environ.get(v, "").strip() for v in alt_set
+                )
+                if alt_present:
+                    complete_sets.append(controller_type)
+                    logger.debug(
+                        f"  {controller_type}: Alt credentials satisfied: {alt_set}"
+                    )
+                    break
+            else:
+                # No alt set was fully satisfied, fall through to primary check
+                pass
+            if controller_type in complete_sets:
+                continue
+
         required_vars = config.required_env_vars
         present_vars = []
         missing_vars = []

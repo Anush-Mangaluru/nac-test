@@ -130,6 +130,15 @@ class EnvironmentValidator:
         Raises:
             SystemExit: If required variables are missing
         """
+        from nac_test.utils.controller import CONTROLLER_REGISTRY
+
+        # Check if any alt_credential_sets is fully satisfied
+        config = CONTROLLER_REGISTRY.get(controller_type)
+        if config and config.alt_credential_sets:
+            for alt_set in config.alt_credential_sets:
+                if all(os.environ.get(v, "").strip() for v in alt_set):
+                    return  # Alt credentials satisfied, skip username/password check
+
         required_vars = [
             f"{controller_type}_URL",
             f"{controller_type}_USERNAME",
