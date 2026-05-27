@@ -14,6 +14,7 @@ _Note: This changelog covers all 2.0.0 alpha and beta releases._
 - **Merged xUnit Output**: Robot and pyATS results merged into single `xunit.xml` for CI/CD integration
 - **Diagnostic Collection**: `--diagnostic` flag wraps execution to collect troubleshooting info (env, packages, logs)
 - **Fail-Fast Authentication**: Controller authentication validated before pyATS test execution starts
+- **SD-WAN API Token Support (20.18+)**: Pre-flight credential checks now accept `SDWAN_URL` + `SDWAN_API_TOKEN` as a valid credential set without requiring `SDWAN_USERNAME`/`SDWAN_PASSWORD`
 
 ## Breaking Changes
 
