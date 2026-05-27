@@ -56,6 +56,8 @@ class ControllerConfig:
         alt_credential_sets: Alternative credential sets that can satisfy authentication.
             Each inner list is a set of env vars that, if ALL present, makes the controller
             complete without needing the primary required_env_vars.
+        alt_credential_hint: Short context label for the alternative credential path,
+            shown in error messages (e.g., "SD-WAN 20.18+"). Falls back to display_name.
     """
 
     display_name: str
@@ -66,6 +68,7 @@ class ControllerConfig:
     cache_key: str | None = None
     alt_url_env_vars: list[str] | None = None
     alt_credential_sets: list[list[str]] | None = None
+    alt_credential_hint: str | None = None
 
 
 # Single source of truth for all controller configurations
@@ -87,6 +90,7 @@ CONTROLLER_REGISTRY: dict[str, ControllerConfig] = {
         defaults_prefix="defaults.sdwan",
         cache_key="SDWAN_MANAGER",
         alt_credential_sets=[["SDWAN_URL", "SDWAN_API_TOKEN"]],
+        alt_credential_hint="SD-WAN 20.18+",
     ),
     "CC": ControllerConfig(
         display_name="Catalyst Center",
@@ -193,7 +197,8 @@ def detect_controller_type() -> ControllerTypeKey:
                 alt_hints = [
                     " + ".join(alt_set) for alt_set in config.alt_credential_sets
                 ]
-                line += f"\n    (for SD-WAN 20.18+, alternatively you can set: {' or '.join(alt_hints)})"
+                hint_label = config.alt_credential_hint or config.display_name
+                line += f"\n    (for {hint_label}, alternatively you can set: {' or '.join(alt_hints)})"
             incomplete_info.append(line)
         lines = "\n".join(f"  - {info}" for info in incomplete_info)
         error_message = (
@@ -381,7 +386,8 @@ def _format_no_credentials_error() -> str:
         if config and config.alt_credential_sets:
             for alt_set in config.alt_credential_sets:
                 alt_exports = "\n".join(f"  export {v}=<value>" for v in alt_set)
-                message += f"  Or\n  (SD-WAN 20.18+):\n{alt_exports}\n"
+                hint_label = config.alt_credential_hint or config.display_name
+                message += f"  Or\n  ({hint_label}):\n{alt_exports}\n"
         message += "\n"
 
     message += (
