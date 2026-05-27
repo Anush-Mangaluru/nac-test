@@ -184,10 +184,17 @@ def detect_controller_type() -> ControllerTypeKey:
 
     # Check for incomplete credentials
     if not complete_sets and partial_sets:
-        incomplete_info = [
-            f"{controller}: missing {', '.join(info['missing'])}"
-            for controller, info in partial_sets.items()
-        ]
+        incomplete_info = []
+        for controller, info in partial_sets.items():
+            line = f"{controller}: missing {', '.join(info['missing'])}"
+            # Add hint about alternative credential sets if available
+            config = CONTROLLER_REGISTRY.get(controller)
+            if config and config.alt_credential_sets:
+                alt_hints = [
+                    " + ".join(alt_set) for alt_set in config.alt_credential_sets
+                ]
+                line += f"\n    (for SD-WAN 20.18+, alternatively you can set: {' or '.join(alt_hints)})"
+            incomplete_info.append(line)
         lines = "\n".join(f"  - {info}" for info in incomplete_info)
         error_message = (
             f"Incomplete controller credentials detected:\n"
@@ -369,6 +376,12 @@ def _format_no_credentials_error() -> str:
         message += f"{controller_type}:\n"
         for var in required_vars:
             message += f"  export {var}=<value>\n"
+        # Add alt credential hint if available
+        config = CONTROLLER_REGISTRY.get(controller_type)
+        if config and config.alt_credential_sets:
+            for alt_set in config.alt_credential_sets:
+                alt_exports = "\n".join(f"  export {v}=<value>" for v in alt_set)
+                message += f"  Or\n  (SD-WAN 20.18+):\n{alt_exports}\n"
         message += "\n"
 
     message += (
