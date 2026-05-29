@@ -246,9 +246,7 @@ def _find_credential_sets() -> tuple[list[str], dict[str, CredentialSetStatus]]:
         # Check alternative credential sets first (e.g., SDWAN_API_TOKEN)
         if config.alt_credential_sets:
             for alt_set in config.alt_credential_sets:
-                alt_present = all(
-                    os.environ.get(v, "").strip() for v in alt_set
-                )
+                alt_present = all(os.environ.get(v, "").strip() for v in alt_set)
                 if alt_present:
                     complete_sets.append(controller_type)
                     logger.debug(
